@@ -75,11 +75,7 @@ export function Params<const T extends ParamResolver<any>[]>(resolvers: T) {
 }
 
 export const param = (name: string): ParamResolver<string> => (req) => req.params[name] as string;
-export const query = (name: string): ParamResolver<string | undefined> => (req) => req.query[name] as string | undefined; // cast: query values can be string[] or ParsedQs in edge cases
+export const query = (name: string): ParamResolver<string | undefined> => (req) => req.query[name] as string | undefined;
 export const body = <T = unknown>(): ParamResolver<T> => (req) => req.body as T;
 export const request = (): ParamResolver<Request> => (req) => req;
 export const response = (): ParamResolver<Response> => (_req, res) => res;
-
-const a = Params([ param('id'), query('addon'), request(), response() ])
-
-const ab = [ param('id'), query('addon'), request(), response() ]

@@ -28,9 +28,3 @@ export default class PostsController{
     return 'edit';
   }
 }
-
-function getFirst<T extends string[]>(items: T): T[0]{
-  return items[0];
-}
-
-const result = getFirst(['apple', 'banana']);
