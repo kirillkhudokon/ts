@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable } from "../decorators";
+import { Body, Controller, Get, Injectable, Param, Post, Query } from "../decorators";
 import AuthService from "../services/auth.service";
 import PostsService from "../services/posts.service";
 
@@ -11,26 +11,19 @@ export default class PostsController{
   ){}
 
   @Get()
-  findAll(){
+  findAll(@Query('limit') limit: string){
     return this.postService.all();
   }
 
   @Get(':id')
-  findOne(){
-    return 1;
-  }
-
-  /*  
-  @Get(':id')
-  findOne(@Param() id: string){
-    return 1;
+  findOne(@Param('id') id: string){
+    return id;
   }
 
   @Post()
-  findOne(@Body() body: unknown){
-    return 1;
+  create(@Body() body: unknown){
+    return body;
   }
-  */
 
   @Get(':id/edit')
   edit(){

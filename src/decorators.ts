@@ -45,3 +45,27 @@ export const Post = createRouteDecorator('post');
 export const Put = createRouteDecorator('put'); 
 export const Patch = createRouteDecorator('patch'); 
 export const Delete = createRouteDecorator('delete'); 
+
+export const METADATA_PARAMS = Symbol();
+
+export type ParamSource = 'param' | 'body' | 'query';
+
+export interface ParamDefinition {
+  index: number;
+  source: ParamSource;
+  key?: string;
+}
+
+function createParamDecorator(source: ParamSource) {
+  return (key?: string): ParameterDecorator => {
+    return (target, propertyKey, parameterIndex) => {
+      const params: ParamDefinition[] = Reflect.getMetadata(METADATA_PARAMS, target, propertyKey!) ?? [];
+      params.push({ index: parameterIndex, source, key });
+      Reflect.defineMetadata(METADATA_PARAMS, params, target, propertyKey!);
+    };
+  };
+}
+
+export const Param = createParamDecorator('param');
+export const Body = createParamDecorator('body');
+export const Query = createParamDecorator('query');
