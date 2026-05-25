@@ -27,10 +27,10 @@ export function createApp(controllers: Constructor<any>[]){
     
     for( const route of routes){
       app[route.method](
-        ('/' + prefix + '/' + route.path).replace(/\/{2,}/g, '/'), 
+        ('/' + prefix + '/' + route.path).replace(/\/{2,}/g, '/'),
         async (req, resp) => {
-          const result = await instance[route.handler].apply(instance);
-          // must be care, check resp is not starting now
+          const args = route.params.map(resolve => resolve(req, resp));
+          const result = await instance[route.handler].apply(instance, args);
           resp.end(JSON.stringify(result));
         }
       )

@@ -1,4 +1,5 @@
 import { Constructor } from './container.js';
+import type { Request, Response } from 'express';
 
 type ConstructorList<Deps extends any[]> = {
   [K in keyof Deps]: Constructor<Deps[K]>
@@ -24,30 +25,53 @@ export function Controller(prefix = '') {
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
+export type ParamResolver = (req: Request, res: Response) => unknown;
+
 export interface RouteDefinition {
   method: HttpMethod;
   path: string;
-  handler: string | symbol; // why i use symbol?
+  handler: string | symbol;
+  params: ParamResolver[];
 }
 
-export const METADATA_ROUTES = Symbol();
+export const METADATA_ROUTES = Symbol('ROUTES');
+export const METADATA_PARAMS = Symbol('PARAMS');
 
 function createRouteDecorator(method: HttpMethod){
   return (path: string = '/') => {
     return (fn: (...args: any[]) => any, ctx: ClassMethodDecoratorContext) => {
+      const params: ParamResolver[] = (fn as any)[METADATA_PARAMS] ?? [];
       (fn as any)[METADATA_ROUTES] = {
         method,
         path,
-        handler: ctx.name
-      }
-
+        handler: ctx.name,
+        params,
+      };
       return fn;
     }
   }
 }
 
-export const Get = createRouteDecorator('get'); 
-export const Post = createRouteDecorator('post'); 
-export const Put = createRouteDecorator('put'); 
-export const Patch = createRouteDecorator('patch'); 
-export const Delete = createRouteDecorator('delete'); 
+export const Get = createRouteDecorator('get');
+export const Post = createRouteDecorator('post');
+export const Put = createRouteDecorator('put');
+export const Patch = createRouteDecorator('patch');
+export const Delete = createRouteDecorator('delete');
+
+export function Params(resolvers: ParamResolver[]) {
+  return (fn: (...args: any[]) => any, ctx: ClassMethodDecoratorContext) => {
+    if (resolvers.length !== fn.length) {
+      throw new Error(
+        `@Params on "${String(ctx.name)}": ${resolvers.length} resolver(s) provided but method has ${fn.length} parameter(s)`
+      );
+    }
+    (fn as any)[METADATA_PARAMS] = resolvers;
+    return fn;
+  };
+}
+
+export const param    = (name: string): ParamResolver => (req) => req.params[name];
+export const query    = (name: string): ParamResolver => (req) => req.query[name];
+export const body     = (): ParamResolver => (req) => req.body;
+export const request  = (): ParamResolver => (req) => req;
+export const response = (): ParamResolver => (_req, res) => res;
