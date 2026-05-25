@@ -1,16 +1,24 @@
-import 'reflect-metadata'
+import { Constructor } from './container.js';
 
-export function Injectable() : ClassDecorator{
-  return target => {
-    Reflect.defineMetadata('injectable', true, target)
-  }
+type ConstructorList<Deps extends any[]> = {
+  [K in keyof Deps]: Constructor<Deps[K]>
 }
 
-export const METADATA_CONTROLLER_PREFIX = Symbol();
+export const METADATA_DI = Symbol('DI');
 
-export function Controller(prefix = ''): ClassDecorator {
-  return (target) => {
-    Reflect.defineMetadata(METADATA_CONTROLLER_PREFIX, prefix, target);
+export function Injectable<Deps extends any[] = []>(deps?: ConstructorList<Deps>){
+  return function<T extends new (...agrs: Deps) => any>(value: T, _ctx: ClassDecoratorContext) : T{
+    (value as any)[METADATA_DI] = deps;
+    return value;
+  };
+}
+
+export const METADATA_CONTROLLER_PREFIX = Symbol('CONTROLLER_PREFIX');
+
+export function Controller(prefix = '') {
+  return function<T>(value: Constructor<T>, _ctx: ClassDecoratorContext){
+    (value as any)[METADATA_CONTROLLER_PREFIX] = prefix;
+    return value;
   };
 }
 
@@ -25,17 +33,15 @@ export interface RouteDefinition {
 export const METADATA_ROUTES = Symbol();
 
 function createRouteDecorator(method: HttpMethod){
-  return (path: string = '/') : MethodDecorator => {
-    return (target, handler) => {
-      const routes: RouteDefinition[] = Reflect.getMetadata(METADATA_ROUTES, target.constructor) ?? [];
-      
-      routes.push({
+  return (path: string = '/') => {
+    return (fn: (...args: any[]) => any, ctx: ClassMethodDecoratorContext) => {
+      (fn as any)[METADATA_ROUTES] = {
         method,
         path,
-        handler
-      })
-      
-      Reflect.defineMetadata(METADATA_ROUTES, routes, target.constructor);
+        handler: ctx.name
+      }
+
+      return fn;
     }
   }
 }
@@ -45,27 +51,3 @@ export const Post = createRouteDecorator('post');
 export const Put = createRouteDecorator('put'); 
 export const Patch = createRouteDecorator('patch'); 
 export const Delete = createRouteDecorator('delete'); 
-
-export const METADATA_PARAMS = Symbol();
-
-export type ParamSource = 'param' | 'body' | 'query';
-
-export interface ParamDefinition {
-  index: number;
-  source: ParamSource;
-  key?: string;
-}
-
-function createParamDecorator(source: ParamSource) {
-  return (key?: string): ParameterDecorator => {
-    return (target, propertyKey, parameterIndex) => {
-      const params: ParamDefinition[] = Reflect.getMetadata(METADATA_PARAMS, target, propertyKey!) ?? [];
-      params.push({ index: parameterIndex, source, key });
-      Reflect.defineMetadata(METADATA_PARAMS, params, target, propertyKey!);
-    };
-  };
-}
-
-export const Param = createParamDecorator('param');
-export const Body = createParamDecorator('body');
-export const Query = createParamDecorator('query');

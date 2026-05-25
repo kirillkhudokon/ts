@@ -1,31 +1,28 @@
-import { Body, Controller, Get, Injectable, Param, Post, Query } from "../decorators";
-import AuthService from "../services/auth.service";
-import PostsService from "../services/posts.service";
+import { Controller, Get, Injectable } from "../decorators.js";
+import { AuthServiceInterface } from "../interfaces.js";
+import AuthService from "../services/auth.service.js";
+import PostsService from "../services/posts.service.js";
 
-@Injectable()
+@Injectable([ PostsService, AuthService ])
 @Controller('posts')
 export default class PostsController{
   constructor(
     protected postService: PostsService,
-    protected authSevice: AuthService
+    protected authSevice: AuthServiceInterface
   ){}
 
   @Get()
-  findAll(@Query('limit') limit: string){
+  findAll(){
     return this.postService.all();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string){
-    return id;
+  // @Params([ param('id'), query('addon'), request() /* body,req,resp */ ])
+  findOne(id: string, addon: string, r: Request){
+    return 'here';
   }
 
-  @Post()
-  create(@Body() body: unknown){
-    return body;
-  }
-
-  @Get(':id/edit')
+  //@Get(':id/edit')
   edit(){
     return 'edit';
   }

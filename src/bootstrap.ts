@@ -1,6 +1,6 @@
-import { Constructor, Container } from "./container";
-import express from 'express';
-import { METADATA_CONTROLLER_PREFIX, METADATA_ROUTES, METADATA_PARAMS, ParamDefinition, RouteDefinition } from "./decorators";
+import { Constructor, Container } from "./container.js";
+import express, { Request, Response } from 'express';
+import { METADATA_CONTROLLER_PREFIX, METADATA_ROUTES, RouteDefinition } from "./decorators.js";
 
 export function createApp(controllers: Constructor<any>[]){
   const container = new Container();
@@ -8,27 +8,29 @@ export function createApp(controllers: Constructor<any>[]){
   app.use(express.json());
 
   for(const ControllerClass of controllers){
-    const prefix: string = Reflect.getMetadata(METADATA_CONTROLLER_PREFIX, ControllerClass);
-    const routes: RouteDefinition[] = Reflect.getMetadata(METADATA_ROUTES, ControllerClass);
+    const routes: RouteDefinition[] = [];
 
+    for (const key of Object.getOwnPropertyNames(ControllerClass.prototype)){
+      const fn = ControllerClass.prototype[key];
+
+      if(typeof fn === 'function' && key !== 'constructor'){
+        const route: RouteDefinition | undefined = fn[METADATA_ROUTES]
+        
+        if(route){
+          routes.push(route);
+        }
+      }
+    }
+
+    const prefix: string = (ControllerClass as any)[METADATA_CONTROLLER_PREFIX];
     const instance = container.resolve(ControllerClass);
     
     for( const route of routes){
       app[route.method](
         ('/' + prefix + '/' + route.path).replace(/\/{2,}/g, '/'), 
         async (req, resp) => {
-          const paramDefs: ParamDefinition[] = Reflect.getMetadata(METADATA_PARAMS, Object.getPrototypeOf(instance), route.handler) ?? [];
-          const args = [];
-          for (const p of paramDefs) {
-            if (p.source === 'param') {
-              args[p.index] = p.key ? req.params[p.key] : req.params;
-            } else if (p.source === 'body') {
-              args[p.index] = p.key ? req.body[p.key] : req.body 
-            } else if (p.source === 'query') { 
-              args[p.index] = p.key ? req.query[p.key] : req.query;
-            }
-          }
-          const result = await instance[route.handler].call(instance, ...args);
+          const result = await instance[route.handler].apply(instance);
+          // must be care, check resp is not starting now
           resp.end(JSON.stringify(result));
         }
       )

@@ -1,4 +1,4 @@
-import { Injectable } from "../decorators";
+import { Injectable } from "../decorators.js";
 
 @Injectable()
 export default class AuthService{

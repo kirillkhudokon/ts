@@ -1,7 +1,7 @@
-import { Injectable } from "../decorators";
-import DBService from "./db.service";
+import { Injectable } from "../decorators.js";
+import DBService from "./db.service.js";
 
-@Injectable()
+@Injectable([ DBService ])
 export default class PostsService{
   constructor(protected db: DBService){}
 
