@@ -25,7 +25,12 @@ export function Controller(prefix = '') {
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
-export type ParamResolver = (req: Request, res: Response) => unknown;
+export type ParamResolver<T = unknown> = (req: Request, res: Response) => T;
+
+// берем ретурн тайп от каждого елем тюпла
+type ResolverArgs<T extends ParamResolver<any>[]> = {
+  [K in keyof T]: ReturnType<T[K]> // можно через infer бахнуть, но так короче
+};
 
 export interface RouteDefinition {
   method: HttpMethod;
@@ -58,20 +63,23 @@ export const Put = createRouteDecorator('put');
 export const Patch = createRouteDecorator('patch');
 export const Delete = createRouteDecorator('delete');
 
-export function Params(resolvers: ParamResolver[]) {
-  return (fn: (...args: any[]) => any, ctx: ClassMethodDecoratorContext) => {
+// const T - строгий фикс типа, аналогия as const(не совсем верно, но в целом похоже). фиксируем порядок и тип
+export function Params<const T extends ParamResolver<any>[]>(resolvers: T) {
+  return <V extends (...args: ResolverArgs<T>) => any>(fn: V, ctx: ClassMethodDecoratorContext): V => {
     if (resolvers.length !== fn.length) {
-      throw new Error(
-        `@Params on "${String(ctx.name)}": ${resolvers.length} resolver(s) provided but method has ${fn.length} parameter(s)`
-      );
+      throw new Error('Params mismatch');
     }
     (fn as any)[METADATA_PARAMS] = resolvers;
     return fn;
   };
 }
 
-export const param    = (name: string): ParamResolver => (req) => req.params[name];
-export const query    = (name: string): ParamResolver => (req) => req.query[name];
-export const body     = (): ParamResolver => (req) => req.body;
-export const request  = (): ParamResolver => (req) => req;
-export const response = (): ParamResolver => (_req, res) => res;
+export const param = (name: string): ParamResolver<string> => (req) => req.params[name] as string;
+export const query = (name: string): ParamResolver<string | undefined> => (req) => req.query[name] as string | undefined; // cast: query values can be string[] or ParsedQs in edge cases
+export const body = <T = unknown>(): ParamResolver<T> => (req) => req.body as T;
+export const request = (): ParamResolver<Request> => (req) => req;
+export const response = (): ParamResolver<Response> => (_req, res) => res;
+
+const a = Params([ param('id'), query('addon'), request(), response() ])
+
+const ab = [ param('id'), query('addon'), request(), response() ]

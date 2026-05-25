@@ -19,7 +19,7 @@ export default class PostsController{
 
   @Get(':id')
   @Params([ param('id'), query('addon'), request(), response() ])
-  findOne(id: string, addon: string, req: Request, res: Response){
+  findOne(id: string, addon: string | undefined, req: Request, res: Response){
     return { id, addon };
   }
 
@@ -28,3 +28,9 @@ export default class PostsController{
     return 'edit';
   }
 }
+
+function getFirst<T extends string[]>(items: T): T[0]{
+  return items[0];
+}
+
+const result = getFirst(['apple', 'banana']);
