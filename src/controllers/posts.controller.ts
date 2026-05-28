@@ -1,4 +1,5 @@
-import { Controller, Get, Injectable } from "../decorators.js";
+import { type Request, type Response } from 'express';
+import { Controller, Get, Injectable, Params, param, query, request, response } from "../decorators.js";
 import { AuthServiceInterface } from "../interfaces.js";
 import AuthService from "../services/auth.service.js";
 import PostsService from "../services/posts.service.js";
@@ -17,9 +18,9 @@ export default class PostsController{
   }
 
   @Get(':id')
-  // @Params([ param('id'), query('addon'), request() /* body,req,resp */ ])
-  findOne(id: string, addon: string, r: Request){
-    return 'here';
+  @Params([ param('id'), query('addon'), request(), response() ])
+  findOne(id: string, addon: string | undefined, req: Request, res: Response){
+    return { id, addon };
   }
 
   //@Get(':id/edit')
